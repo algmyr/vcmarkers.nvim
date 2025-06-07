@@ -44,7 +44,14 @@ local function _command(arg)
   fun(bufnr, args)
 end
 
-function M.setup(opts)
+local default_config = {
+  -- Enable in all buffers by default.
+  auto_enable = true,
+}
+
+function M.setup(user_config)
+  local config = vim.tbl_deep_extend("force", default_config, user_config or {})
+
   vim.api.nvim_create_user_command("VCMarkers", _command, {
     desc = "VCMarkers command",
     nargs = "*",
@@ -66,6 +73,18 @@ function M.setup(opts)
     highlight default link VCMarkersMarker         SignColumn
     highlight default link VCMarkersSectionHeader  SignColumn
   ]]
+
+  if config.auto_enable then
+    -- Enable VCMarkers for all buffers.
+    vim.api.nvim_create_autocmd("BufEnter", {
+      pattern = "*",
+      callback = function(args)
+        -- Try starting, will do nothing if markers are not present.
+        M.actions.start(args.buf)
+      end,
+      desc = "Auto-enable VCMarkers on buffer read (if markers are present)",
+    })
+  end
 end
 
 return M
