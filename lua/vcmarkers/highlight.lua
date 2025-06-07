@@ -1,6 +1,6 @@
 local M = {}
 
-local markers = require "jjmarkers.markers"
+local markers = require "vcmarkers.markers"
 
 local base_prio = 200
 
@@ -57,7 +57,7 @@ local function _highlight_marker(bufnr, ns, marker)
 end
 
 local function _namespace()
-  return vim.api.nvim_create_namespace "jjmarkers"
+  return vim.api.nvim_create_namespace "vcmarkers"
 end
 
 function M.clear_highlights(bufnr)

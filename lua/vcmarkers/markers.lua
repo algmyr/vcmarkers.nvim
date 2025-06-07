@@ -167,4 +167,59 @@ function M.extract_diff_markers(buffer_lines)
   return markers
 end
 
+---@param lnum integer
+---@param markers Marker[]
+local function _partition_markers(lnum, markers)
+  local before = {}
+  local on = nil
+  local after = {}
+
+  for _, marker in ipairs(markers) do
+    local count = marker.end_line - marker.start_line
+    -- Special case the current marker, do not include it in before/after.
+    if marker.start_line <= lnum and lnum < marker.start_line + count then
+      on = marker
+      goto continue
+    end
+    if marker.start_line < lnum then
+      table.insert(before, marker)
+    end
+    if marker.start_line > lnum then
+      table.insert(after, marker)
+    end
+    ::continue::
+  end
+
+  return before, on, after
+end
+
+--- Get the `count`th previous marker.
+---@param lnum integer
+---@param markers Marker[]
+---@param count integer
+---@return Marker?
+function M.prev_marker(lnum, markers, count)
+  local before, _, _ = _partition_markers(lnum - 1, markers)
+  return before[#before - (count - 1)] or before[1]
+end
+
+--- Get the `count`th next marker.
+---@param lnum integer
+---@param markers Marker[]
+---@param count integer
+---@return Marker?
+function M.next_marker(lnum, markers, count)
+  local _, _, after = _partition_markers(lnum - 1, markers)
+  return after[count] or after[#after]
+end
+
+--- Get the current marker for a given line number, if any.
+---@param lnum integer
+---@param markers Marker[]
+---@return Marker?
+function M.cur_marker(lnum, markers)
+  local _, on, _ = _partition_markers(lnum - 1, markers)
+  return on
+end
+
 return M

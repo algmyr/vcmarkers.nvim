@@ -1,6 +1,6 @@
 local M = {}
 
-local actions = require "jjmarkers.actions"
+M.actions = require "vcmarkers.actions"
 
 --- Decorator to wrap a function that takes no arguments.
 local function _no_args(fun)
@@ -13,9 +13,22 @@ local function _no_args(fun)
   return wrap
 end
 
+local function _with_count(fun)
+  local function wrap(bufnr, args)
+    if #args > 1 then
+      error "This VCMarkers command takes at most one argument"
+    end
+    local count = tonumber(args[1]) or 1
+    fun(bufnr, count)
+  end
+  return wrap
+end
+
 local command_map = {
-  start = _no_args(actions.start),
-  stop = _no_args(actions.stop),
+  start = _no_args(M.actions.start),
+  stop = _no_args(M.actions.stop),
+  prev_marker = _with_count(M.actions.prev_marker),
+  next_marker = _with_count(M.actions.next_marker),
 }
 
 local function _command(arg)

@@ -1,24 +1,24 @@
 local M = {}
 
-local markers = require "jjmarkers.markers"
-local highlight = require "jjmarkers.highlight"
+local markers = require "vcmarkers.markers"
+local highlight = require "vcmarkers.highlight"
 
 ---@param bufnr number Buffer number.
 local function _update_markers(bufnr)
   local all_lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local diff_markers = markers.extract_diff_markers(all_lines)
-  vim.b[bufnr].jjmarkers_markers = diff_markers
+  vim.b[bufnr].vcmarkers_markers = diff_markers
 end
 
 ---@param bufnr number Buffer number.
 local function _handle_update(bufnr)
-  local diff_markers = vim.b[bufnr].jjmarkers_markers
+  local diff_markers = vim.b[bufnr].vcmarkers_markers
 
   if #diff_markers == 0 then
-    vim.b[bufnr].jjmarkers_highlight_enabled = false
+    vim.b[bufnr].vcmarkers_highlight_enabled = false
   end
 
-  if vim.b[bufnr].jjmarkers_highlight_enabled then
+  if vim.b[bufnr].vcmarkers_highlight_enabled then
     -- Do not detach.
     highlight.redraw_highlight(bufnr, diff_markers)
     return false
@@ -32,9 +32,9 @@ end
 --- Start highlighting diff markers until stopped or none are left.
 ---@param bufnr number Buffer number.
 function M.start(bufnr)
-  local need_attach = not vim.b[bufnr].jjmarkers_highlight_enabled
+  local need_attach = not vim.b[bufnr].vcmarkers_highlight_enabled
   if need_attach then
-    vim.b[bufnr].jjmarkers_highlight_enabled = true
+    vim.b[bufnr].vcmarkers_highlight_enabled = true
     vim.api.nvim_buf_attach(bufnr, false, {
       on_lines = function(
         lines,
@@ -57,14 +57,46 @@ function M.start(bufnr)
 
   -- Update immediately.
   _update_markers(bufnr)
-  highlight.redraw_highlight(bufnr, vim.b[bufnr].jjmarkers_markers)
+  highlight.redraw_highlight(bufnr, vim.b[bufnr].vcmarkers_markers)
 end
 
 --- Stop highlighting diff markers.
 ---@param bufnr number Buffer number.
 function M.stop(bufnr)
-  vim.b[bufnr].jjmarkers_highlight_enabled = false
+  vim.b[bufnr].vcmarkers_highlight_enabled = false
   highlight.clear_highlights(bufnr)
+end
+
+---@param bufnr integer The buffer number.
+---@param count integer The number of markers ahead.
+function M.next_marker(bufnr, count)
+  if vim.o.diff then
+    vim.cmd "normal! ]c"
+    return
+  end
+  local lnum = vim.fn.line "."
+  local diff_markers = vim.b[bufnr].vcmarkers_markers
+  local marker = markers.next_marker(lnum, diff_markers, count)
+  if marker then
+    vim.cmd "normal! m`"
+    vim.api.nvim_win_set_cursor(0, { marker.start_line + 1, 0 })
+  end
+end
+
+---@param bufnr integer The buffer number.
+---@param count integer The number of markers ahead.
+function M.prev_marker(bufnr, count)
+  if vim.o.diff then
+    vim.cmd "normal! [c"
+    return
+  end
+  local lnum = vim.fn.line "."
+  local diff_markers = vim.b[bufnr].vcmarkers_markers
+  local marker = markers.prev_marker(lnum, diff_markers, count)
+  if marker then
+    vim.cmd "normal! m`"
+    vim.api.nvim_win_set_cursor(0, { marker.start_line + 1, 0 })
+  end
 end
 
 return M
