@@ -1,5 +1,6 @@
 local M = {}
 
+M.fold = require "vcmarkers.fold"
 M.actions = require "vcmarkers.actions"
 
 --- Decorator to wrap a function that takes no arguments.
@@ -29,6 +30,7 @@ local command_map = {
   stop = _no_args(M.actions.stop),
   prev_marker = _with_count(M.actions.prev_marker),
   next_marker = _with_count(M.actions.next_marker),
+  fold = _no_args(M.fold.toggle),
 }
 
 local function _command(arg)
@@ -47,10 +49,15 @@ end
 local default_config = {
   -- Enable in all buffers by default.
   auto_enable = true,
+  -- Sizes of context to add fold levels for (order doesn't matter).
+  -- E.g. { 1, 3 } would mean one fold level with a context of 1 line,
+  -- and one fold level with a context of 3 lines.
+  fold_context_sizes = { 1 },
 }
 
 function M.setup(user_config)
   local config = vim.tbl_deep_extend("force", default_config, user_config or {})
+  vim.g.vcmarkers_fold_context_sizes = config.fold_context_sizes
 
   vim.api.nvim_create_user_command("VCMarkers", _command, {
     desc = "VCMarkers command",
