@@ -99,4 +99,40 @@ function M.prev_marker(bufnr, count)
   end
 end
 
+---@param bufnr integer The buffer number.
+function M.select_section(bufnr)
+  local lnum = vim.fn.line "."
+  local diff_markers = vim.b[bufnr].vcmarkers_markers
+  local marker = markers.cur_marker(lnum, diff_markers)
+  if not marker then
+    vim.notify(
+      "No marker under cursor",
+      vim.log.levels.WARN,
+      { title = "VCMarkers" }
+    )
+    return
+  end
+
+  local section = markers.current_section(marker, lnum)
+  if not section then
+    vim.notify(
+      "No section under cursor",
+      vim.log.levels.WARN,
+      { title = "VCMarkers" }
+    )
+    return
+  end
+
+  -- Could check that the section is actually a "plus" section,
+  -- but let's trust the user for now.
+  vim.api.nvim_buf_set_lines(
+    bufnr,
+    marker.start_line,
+    marker.end_line,
+    true,
+    section.lines
+  )
+  vim.api.nvim_win_set_cursor(0, { marker.start_line + 1, 0 })
+end
+
 return M

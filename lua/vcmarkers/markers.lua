@@ -24,6 +24,22 @@ M.DiffKind = {
   DIFF3_RIGHT = "diff3_right",
 }
 
+---@param marker Marker
+---@param lnum integer
+---@return Section|nil
+function M.current_section(marker, lnum)
+  lnum = lnum - 1 -- Convert to zero-based line number.
+  for _, section in ipairs(marker.sections) do
+    if
+      section.content_line <= lnum
+      and lnum < section.content_line + #section.lines
+    then
+      return section
+    end
+  end
+  return nil
+end
+
 ---@param section Section
 function M.is_diff(section)
   return section.kind == M.DiffKind.DIFF
