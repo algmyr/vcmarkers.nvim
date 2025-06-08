@@ -34,24 +34,21 @@ end
 function M.start(bufnr)
   local need_attach = not vim.b[bufnr].vcmarkers_highlight_enabled
   if need_attach then
+    local function cb(event, buffer)
+      -- The different callbacks take different arguments,
+      -- but the buffer is always there.
+      --
+      -- Make this more granular? Would make the namespace stuff more annoying.
+      -- Could clear highlights just in the region rather than nuke whole namespace.
+      _update_markers(buffer)
+      return _handle_update(buffer)
+    end
+
     vim.b[bufnr].vcmarkers_highlight_enabled = true
     vim.api.nvim_buf_attach(bufnr, false, {
-      on_lines = function(
-        lines,
-        buffer,
-        changedtick,
-        firstline,
-        lastline,
-        new_lastline,
-        bytecount,
-        deleted_codepoints,
-        deleted_codeunits
-      )
-        -- Make this more granular? Would make the namespace stuff more annoying.
-        -- Could clear highlights just in the region rather than nuke whole namespace.
-        _update_markers(buffer)
-        return _handle_update(buffer)
-      end,
+      on_lines = cb,
+      on_changedtick = cb,
+      on_reload = cb,
     })
   end
 
