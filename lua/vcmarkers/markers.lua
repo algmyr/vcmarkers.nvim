@@ -24,6 +24,15 @@ M.DiffKind = {
   DIFF3_RIGHT = "diff3_right",
 }
 
+local kind_symbols = {
+  [M.DiffKind.DIFF] = "%",
+  [M.DiffKind.ADDED] = "+",
+  [M.DiffKind.DELETED] = "-",
+  [M.DiffKind.DIFF3_BASE] = "|",
+  [M.DiffKind.DIFF3_RIGHT] = "=",
+  [M.DiffKind.DIFF3_LEFT] = nil,
+}
+
 ---@param marker Marker
 ---@param lnum integer
 ---@return Section|nil
@@ -68,13 +77,13 @@ end
 ---@param lines string[]
 ---@return Section[]
 local function _extract_sections(marker, lines)
-  local kinds = {
-    [M.DiffKind.DIFF] = _pattern(marker, "%%"),
-    [M.DiffKind.ADDED] = _pattern(marker, "%+"),
-    [M.DiffKind.DELETED] = _pattern(marker, "%-"),
-    [M.DiffKind.DIFF3_BASE] = _pattern(marker, "%|"),
-    [M.DiffKind.DIFF3_RIGHT] = _pattern(marker, "%="),
-  }
+  local kinds = {}
+  for _, kind in pairs(M.DiffKind) do
+    local symbol = kind_symbols[kind]
+    if symbol then
+      kinds[kind] = _pattern(marker, "%" .. symbol)
+    end
+  end
 
   local function section_header(line)
     for kind, pattern in pairs(kinds) do
