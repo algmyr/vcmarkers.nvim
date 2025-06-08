@@ -11,6 +11,7 @@ local M = {}
 ---@field start_line integer
 ---@field end_line integer
 ---@field label string
+---@field end_label string
 ---@field prefix_len integer
 ---@field sections Section[]
 
@@ -164,6 +165,7 @@ function M.extract_diff_markers(buffer_lines)
           start_line = i - 1,
           end_line = -1,
           label = label,
+          end_label = "",
           prefix_len = #prefix,
           sections = {},
         }
@@ -173,10 +175,11 @@ function M.extract_diff_markers(buffer_lines)
 
     -- Inside a marker.
     -- Detect end of marker.
-    local s, _, _, _ = string.find(line, _pattern(marker, ">"))
+    local s, _, _, label = string.find(line, _pattern(marker, ">"))
     if s then
       -- End of marker, finalize it.
       marker.end_line = i
+      marker.end_label = label or ""
       marker.sections = _extract_sections(marker, marker_lines)
       markers[#markers + 1] = marker
       marker = nil
