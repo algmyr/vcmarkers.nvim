@@ -132,4 +132,31 @@ function M.select_section(bufnr)
   vim.api.nvim_win_set_cursor(0, { marker.start_line + 1, 0 })
 end
 
+--- Convert markers to a different format.
+function M.cycle_marker(bufnr)
+  local lnum = vim.fn.line "."
+  local diff_markers = vim.b[bufnr].vcmarkers_markers
+  local marker = markers.cur_marker(lnum, diff_markers)
+
+  if not marker then
+    vim.notify(
+      "No marker under cursor",
+      vim.log.levels.WARN,
+      { title = "VCMarkers" }
+    )
+    return
+  end
+
+  markers.cycle_marker(marker)
+
+  vim.api.nvim_buf_set_lines(
+    bufnr,
+    marker.start_line,
+    marker.end_line,
+    true,
+    markers.materialize_marker(marker)
+  )
+  vim.api.nvim_win_set_cursor(0, { lnum, 0 })
+end
+
 return M

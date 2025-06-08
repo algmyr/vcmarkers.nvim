@@ -32,6 +32,7 @@ local command_map = {
   next_marker = _with_count(M.actions.next_marker),
   select = _no_args(M.actions.select_section),
   fold = _no_args(M.fold.toggle),
+  cycle = _no_args(M.actions.cycle_marker),
 }
 
 local function _command(arg)

@@ -1,5 +1,10 @@
 local M = {}
 
+local diff_kinds = require "vcmarkers.diff_kinds"
+local marker_format = require "vcmarkers.marker_format"
+
+local DiffKind = diff_kinds.DiffKind
+
 ---@class Section
 ---@field label string|nil
 ---@field kind string|nil
@@ -14,25 +19,6 @@ local M = {}
 ---@field end_label string
 ---@field prefix_len integer
 ---@field sections Section[]
-
----@enum DiffKind
-M.DiffKind = {
-  DIFF = "diff",
-  ADDED = "add",
-  DELETED = "del",
-  DIFF3_LEFT = "diff3_left",
-  DIFF3_BASE = "diff3_base",
-  DIFF3_RIGHT = "diff3_right",
-}
-
-local kind_symbols = {
-  [M.DiffKind.DIFF] = "%",
-  [M.DiffKind.ADDED] = "+",
-  [M.DiffKind.DELETED] = "-",
-  [M.DiffKind.DIFF3_BASE] = "|",
-  [M.DiffKind.DIFF3_RIGHT] = "=",
-  [M.DiffKind.DIFF3_LEFT] = nil,
-}
 
 ---@param marker Marker
 ---@param lnum integer
@@ -52,22 +38,21 @@ end
 
 ---@param section Section
 function M.is_diff(section)
-  return section.kind == M.DiffKind.DIFF
+  return section.kind == DiffKind.DIFF
 end
 
 ---@param section Section
 function M.is_plus(section)
   return (
-    section.kind == M.DiffKind.ADDED
-    or section.kind == M.DiffKind.DIFF3_LEFT
-    or section.kind == M.DiffKind.DIFF3_RIGHT
+    section.kind == DiffKind.ADDED
+    or section.kind == DiffKind.DIFF3_LEFT
+    or section.kind == DiffKind.DIFF3_RIGHT
   )
 end
 
 ---@param section Section
 function M.is_minus(section)
-  return section.kind == M.DiffKind.DELETED
-    or section.kind == M.DiffKind.DIFF3_BASE
+  return section.kind == DiffKind.DELETED or section.kind == DiffKind.DIFF3_BASE
 end
 
 local function _pattern(marker, kind)
@@ -79,8 +64,8 @@ end
 ---@return Section[]
 local function _extract_sections(marker, lines)
   local kinds = {}
-  for _, kind in pairs(M.DiffKind) do
-    local symbol = kind_symbols[kind]
+  for _, kind in pairs(DiffKind) do
+    local symbol = diff_kinds.kind_symbols[kind]
     if symbol then
       kinds[kind] = _pattern(marker, "%" .. symbol)
     end
@@ -115,7 +100,7 @@ local function _extract_sections(marker, lines)
     else
       sections[#sections + 1] = {
         label = section_label,
-        kind = M.DiffKind.DIFF3_LEFT,
+        kind = DiffKind.DIFF3_LEFT,
         header_line = nil,
         content_line = section_start,
         lines = section_lines,
@@ -127,7 +112,7 @@ local function _extract_sections(marker, lines)
     local kind, label = section_header(line)
     if kind then
       -- Found a section header.
-      if kind ~= M.DiffKind.DIFF3_BASE and not section_kind then
+      if kind ~= DiffKind.DIFF3_BASE and not section_kind then
         -- Not a diff3 section, so no initial text section. Skip.
       else
         handle()
@@ -249,5 +234,9 @@ function M.cur_marker(lnum, markers)
   local _, on, _ = _partition_markers(lnum - 1, markers)
   return on
 end
+
+-- Re-export the marker format functions.
+M.cycle_marker = marker_format.cycle_marker
+M.materialize_marker = marker_format.materialize_marker
 
 return M
