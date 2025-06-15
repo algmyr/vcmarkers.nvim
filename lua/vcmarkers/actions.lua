@@ -14,10 +14,6 @@ end
 local function _handle_update(bufnr)
   local diff_markers = vim.b[bufnr].vcmarkers_markers
 
-  if #diff_markers == 0 then
-    vim.b[bufnr].vcmarkers_highlight_enabled = false
-  end
-
   if vim.b[bufnr].vcmarkers_highlight_enabled then
     -- Do not detach.
     highlight.redraw_highlight(bufnr, diff_markers)
@@ -32,6 +28,7 @@ end
 --- Start highlighting diff markers until stopped or none are left.
 ---@param bufnr number Buffer number.
 function M.start(bufnr)
+  vim.b[bufnr].vcmarkers_disabled = false
   local need_attach = not vim.b[bufnr].vcmarkers_highlight_enabled
   if need_attach then
     local function cb(event, buffer)
@@ -60,6 +57,7 @@ end
 --- Stop highlighting diff markers.
 ---@param bufnr number Buffer number.
 function M.stop(bufnr)
+  vim.b[bufnr].vcmarkers_disabled = true
   vim.b[bufnr].vcmarkers_highlight_enabled = false
   highlight.clear_highlights(bufnr)
 end

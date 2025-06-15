@@ -83,17 +83,24 @@ function M.setup(user_config)
     highlight default link VCMarkersSectionHeader  SignColumn
   ]]
 
-  if config.auto_enable then
-    -- Enable VCMarkers for all buffers.
-    vim.api.nvim_create_autocmd("BufEnter", {
-      pattern = "*",
-      callback = function(args)
-        -- Try starting, will do nothing if markers are not present.
-        M.actions.start(args.buf)
-      end,
-      desc = "Auto-enable VCMarkers on buffer read (if markers are present)",
-    })
+  local function effectively_enabled(bufnr)
+    -- Consider things enabled if either
+    -- * explicitly enabled
+    -- * auto-enable is set and not explicitly disabled
+    local disabled = vim.b[bufnr].vcmarkers_disabled
+    return (disabled == nil and config.auto_enable) or disabled == false
   end
+
+  -- Event for starting or re-starting VCMarkers.
+  vim.api.nvim_create_autocmd({ "BufEnter", "FocusGained" }, {
+    pattern = "*",
+    callback = function(args)
+      if effectively_enabled(args.buf) then
+        M.actions.start(args.buf)
+      end
+    end,
+    desc = "Auto-enable VCMarkers on buffer read (if markers are present)",
+  })
 end
 
 return M
