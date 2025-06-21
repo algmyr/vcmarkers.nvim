@@ -58,6 +58,13 @@ function M.start(bufnr)
   highlight.redraw_highlight(bufnr, vim.b[bufnr].vcmarkers_markers)
 end
 
+function M.start_if_markers(bufnr)
+  _update_markers(bufnr)
+  if vim.b[bufnr].vcmarkers_markers and #vim.b[bufnr].vcmarkers_markers > 0 then
+    M.start(bufnr)
+  end
+end
+
 --- Stop highlighting diff markers.
 ---@param bufnr number Buffer number.
 function M.stop(bufnr)

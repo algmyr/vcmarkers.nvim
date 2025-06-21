@@ -96,7 +96,7 @@ function M.setup(user_config)
     pattern = "*",
     callback = function(args)
       if effectively_enabled(args.buf) then
-        M.actions.start(args.buf)
+        M.actions.start_if_markers(args.buf)
       end
     end,
     desc = "Auto-enable VCMarkers on buffer read (if markers are present)",
