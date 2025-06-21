@@ -47,6 +47,10 @@ function M.start(bufnr)
       on_changedtick = cb,
       on_reload = cb,
     })
+    -- Disable diagnostics for this buffer.
+    -- Conflict markers tend to not play well with linters and the like.
+    vim.b[bufnr].vcmarkers_enabled = vim.diagnostic.is_enabled { bufnr = bufnr }
+    vim.diagnostic.enable(false, { bufnr = bufnr })
   end
 
   -- Update immediately.
@@ -60,6 +64,10 @@ function M.stop(bufnr)
   vim.b[bufnr].vcmarkers_disabled = true
   vim.b[bufnr].vcmarkers_highlight_enabled = false
   highlight.clear_highlights(bufnr)
+  -- Re-enable diagnostics if they were enabled before.
+  if vim.b[bufnr].vcmarkers_enabled then
+    vim.diagnostic.enable(true, { bufnr = bufnr })
+  end
 end
 
 ---@param bufnr integer The buffer number.
