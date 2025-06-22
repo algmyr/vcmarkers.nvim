@@ -94,6 +94,15 @@ local function _snapshot_sections(base, sides)
   return sections
 end
 
+---@param lines string[]
+---@return string
+local function _join_lines(lines)
+  if #lines == 0 then
+    return ""
+  end
+  return table.concat(lines, "\n") .. "\n"
+end
+
 ---@param base string[]
 ---@param sides string[][]
 ---@return Section[]
@@ -112,8 +121,8 @@ local function _diff_sections(base, sides, plus_index)
     else
       -- Diff section.
       -- Join lines into one string
-      local base_str = table.concat(base, "\n") .. "\n"
-      local side_str = table.concat(side, "\n") .. "\n"
+      local base_str = _join_lines(base)
+      local side_str = _join_lines(side)
       local diff_str = vim.diff(base_str, side_str, {
         ctxlen = 100000,
         algorithm = "histogram",

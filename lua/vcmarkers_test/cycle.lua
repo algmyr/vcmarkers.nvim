@@ -52,6 +52,20 @@ local simple_snapshot = _make_marker {
   _make_section(DiffKind.ADDED, { "APPLE", "GRAPE", "ORANGE" }),
 }
 
+local empty_jj1 = _make_marker {
+  _make_section(DiffKind.ADDED, {}),
+  _make_section(DiffKind.DIFF, { "-grape", "+GRAPE" }),
+}
+local empty_jj2 = _make_marker {
+  _make_section(DiffKind.DIFF, { "-grape" }),
+  _make_section(DiffKind.ADDED, { "GRAPE" }),
+}
+local empty_snapshot = _make_marker {
+  _make_section(DiffKind.ADDED, {}),
+  _make_section(DiffKind.DELETED, { "grape" }),
+  _make_section(DiffKind.ADDED, { "GRAPE" }),
+}
+
 ---@param a Marker
 ---@param b Marker
 local function _assert_marker_eq(a, b)
@@ -90,6 +104,11 @@ M.cycles = {
       simple_jj2,
       simple_snapshot,
     }),
+    _generate_cycle_cases("empty", {
+      empty_jj1,
+      empty_jj2,
+      empty_snapshot,
+    })
   ),
   test = function(case)
     local marker = case.input
