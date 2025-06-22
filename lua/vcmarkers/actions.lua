@@ -160,7 +160,13 @@ function M.cycle_marker(bufnr)
     return
   end
 
-  markers.cycle_marker(marker)
+  local updated_marker = markers.cycle_marker(marker)
+  marker.end_label = updated_marker.end_label
+  marker.end_line = updated_marker.end_line
+  marker.label = updated_marker.label
+  marker.prefix_len = updated_marker.prefix_len
+  marker.sections = updated_marker.sections
+  marker.start_line = updated_marker.start_line
 
   vim.api.nvim_buf_set_lines(
     bufnr,

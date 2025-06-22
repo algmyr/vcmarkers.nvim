@@ -137,7 +137,9 @@ end
 
 --- Cycle the marker format.
 ---@param jj_marker Marker
+---@return Marker
 function M.cycle_marker(jj_marker)
+  jj_marker = vim.deepcopy(jj_marker)
   for _, section in ipairs(jj_marker.sections) do
     if
       section.kind == DiffKind.DIFF3_LEFT
@@ -194,6 +196,7 @@ function M.cycle_marker(jj_marker)
     jj_marker.sections = _diff_sections(base, sides, plus_index)
   end
   _fix_section_numbers(jj_marker)
+  return jj_marker
 end
 
 return M
