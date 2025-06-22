@@ -1,6 +1,7 @@
 local M = {}
 
 local diff_kinds = require "vcmarkers.diff_kinds"
+local intervals = require "vclib.intervals"
 local marker_format = require "vcmarkers.marker_format"
 
 local DiffKind = diff_kinds.DiffKind
@@ -180,30 +181,14 @@ function M.extract_diff_markers(buffer_lines)
   return markers
 end
 
----@param lnum integer
----@param markers Marker[]
-local function _partition_markers(lnum, markers)
-  local before = {}
-  local on = nil
-  local after = {}
-
-  for _, marker in ipairs(markers) do
-    local count = marker.end_line - marker.start_line
-    -- Special case the current marker, do not include it in before/after.
-    if marker.start_line <= lnum and lnum < marker.start_line + count then
-      on = marker
-      goto continue
-    end
-    if marker.start_line < lnum then
-      table.insert(before, marker)
-    end
-    if marker.start_line > lnum then
-      table.insert(after, marker)
-    end
-    ::continue::
-  end
-
-  return before, on, after
+---@param marker Marker
+---@return Interval
+local function _to_interval(marker)
+  return {
+    l = marker.start_line,
+    r = marker.end_line,
+    data = marker,
+  }
 end
 
 --- Get the `count`th previous marker.
@@ -212,8 +197,7 @@ end
 ---@param count integer
 ---@return Marker?
 function M.prev_marker(lnum, markers, count)
-  local before, _, _ = _partition_markers(lnum - 1, markers)
-  return before[#before - (count - 1)] or before[1]
+  return intervals.from_list(markers, _to_interval):find(lnum, -count)
 end
 
 --- Get the `count`th next marker.
@@ -222,8 +206,7 @@ end
 ---@param count integer
 ---@return Marker?
 function M.next_marker(lnum, markers, count)
-  local _, _, after = _partition_markers(lnum - 1, markers)
-  return after[count] or after[#after]
+  return intervals.from_list(markers, _to_interval):find(lnum, count)
 end
 
 --- Get the current marker for a given line number, if any.
@@ -231,8 +214,7 @@ end
 ---@param markers Marker[]
 ---@return Marker?
 function M.cur_marker(lnum, markers)
-  local _, on, _ = _partition_markers(lnum - 1, markers)
-  return on
+  return intervals.from_list(markers, _to_interval):find(lnum, 0)
 end
 
 -- Re-export the marker format functions.
