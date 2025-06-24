@@ -80,7 +80,6 @@ Example configuration
 ```
 {
   'algmyr/vcmarkers.nvim',
-  dependencies = { 'algmyr/vclib.nvim' },
   config = function()
     require('vcmarkers').setup {}
 
@@ -98,3 +97,5 @@ Example configuration
   end,
 }
 ```
+
+As per https://lazy.folke.io/packages dependencies are specified in `lazy.lua`.
