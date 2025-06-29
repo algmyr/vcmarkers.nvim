@@ -113,7 +113,11 @@ local function _extract_sections(marker, lines)
     local kind, label = section_header(line)
     if kind then
       -- Found a section header.
-      if kind ~= DiffKind.DIFF3_BASE and not section_kind then
+      if
+        kind ~= DiffKind.DIFF3_BASE
+        and kind ~= DiffKind.DIFF3_RIGHT
+        and not section_kind
+      then
         -- Not a diff3 section, so no initial text section. Skip.
       else
         handle()
