@@ -2,7 +2,7 @@ local M = {}
 
 local diff_kinds = require "vcmarkers.diff_kinds"
 local marker_format = require "vcmarkers.marker_format"
-local testing = require "vcsigns_tests.testing"
+local testing = require "vclib.testing"
 
 local DiffKind = diff_kinds.DiffKind
 
