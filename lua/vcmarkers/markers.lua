@@ -27,10 +27,8 @@ local DiffKind = diff_kinds.DiffKind
 function M.current_section(marker, lnum)
   lnum = lnum - 1 -- Convert to zero-based line number.
   for _, section in ipairs(marker.sections) do
-    if
-      section.content_line <= lnum
-      and lnum < section.content_line + #section.lines
-    then
+    local start = section.header_line or section.content_line
+    if start <= lnum and lnum < section.content_line + #section.lines then
       return section
     end
   end
