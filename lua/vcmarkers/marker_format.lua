@@ -69,28 +69,59 @@ local function _diff_extract_side(lines, sign)
   return result
 end
 
+local function _num_sides(sides)
+  return math.floor(#sides / 2) + 1
+end
+
+local function _base_label_gen(num_sides)
+  if num_sides == 2 then
+    return function()
+      return "base"
+    end
+  else
+    local index = 0
+    return function()
+      index = index + 1
+      return "base #" .. index
+    end
+  end
+end
+
+local function _side_label_gen()
+  local index = 0
+  return function()
+    index = index + 1
+    return "side #" .. index
+  end
+end
+
 ---@param base string[]
 ---@param sides string[][]
 ---@return Section[]
-local function _snapshot_sections(base, sides)
+local function _snapshot_sections(sides)
   ---@type Section[]
   local sections = {}
-  for i, side in ipairs(sides) do
+  local base = _base_label_gen(_num_sides(sides))
+  local side = _side_label_gen()
+  for i, lines in ipairs(sides) do
+    local label
+    local kind
+    if i % 2 == 0 then
+      label = string.format("Contents of " .. base())
+      kind = DiffKind.DELETED
+    else
+      label = string.format("Contents of " .. side())
+      kind = DiffKind.ADDED
+    end
+
     sections[#sections + 1] = {
-      label = "Contents of side #" .. i,
-      kind = DiffKind.ADDED,
+      label = label,
+      kind = kind,
       header_line = nil, -- Computed later.
       content_line = -1, -- Computed later.
-      lines = side,
+      lines = lines,
     }
   end
-  table.insert(sections, 2, {
-    label = "Contents of base",
-    kind = DiffKind.DELETED,
-    header_line = nil, -- Computed later.
-    content_line = -1, -- Computed later.
-    lines = base,
-  })
   return sections
 end
 
@@ -103,45 +134,100 @@ local function _join_lines(lines)
   return table.concat(lines, "\n") .. "\n"
 end
 
+local function _build_diff_lines(base, side)
+  -- Join lines into one string
+  local base_str = _join_lines(base)
+  local side_str = _join_lines(side)
+  local diff_str = vim.diff(base_str, side_str, {
+    ctxlen = 100000,
+    algorithm = "histogram",
+  })
+  ---@cast diff_str string
+  local diff_lines = vim.split(diff_str, "\n", { plain = true })
+  table.remove(diff_lines, 1) -- Diff header line.
+  table.remove(diff_lines) -- Empty line at end.
+  return diff_lines
+end
+
 ---@param base string[]
 ---@param sides string[][]
 ---@return Section[]
-local function _diff_sections(base, sides, plus_index)
+local function _diff_sections(sides, plus_index)
   ---@type Section[]
   local sections = {}
-  for i, side in ipairs(sides) do
-    if i == plus_index then
-      sections[#sections + 1] = {
-        label = "Contents of side #" .. i,
-        kind = DiffKind.ADDED,
-        header_line = nil, -- Computed later.
-        content_line = -1, -- Computed later.
-        lines = side,
-      }
-    else
-      -- Diff section.
-      -- Join lines into one string
-      local base_str = _join_lines(base)
-      local side_str = _join_lines(side)
-      local diff_str = vim.diff(base_str, side_str, {
-        ctxlen = 100000,
-        algorithm = "histogram",
-      })
-      ---@cast diff_str string
-      local diff_lines = vim.split(diff_str, "\n", { plain = true })
-      table.remove(diff_lines, 1) -- Diff header line.
-      table.remove(diff_lines) -- Empty line at end.
 
-      sections[#sections + 1] = {
-        label = "Changes from base to side #" .. i,
-        kind = DiffKind.DIFF,
-        header_line = nil, -- Computed later.
-        content_line = -1, -- Computed later.
-        lines = diff_lines,
-      }
-    end
+  local base = _base_label_gen(_num_sides(sides))
+  local side = _side_label_gen()
+
+  local function _diff_section(plus, minus)
+    return {
+      label = "Changes from " .. base() .. " to " .. side(),
+      kind = DiffKind.DIFF,
+      header_line = nil, -- Computed later.
+      content_line = -1, -- Computed later.
+      lines = _build_diff_lines(minus, plus),
+    }
+  end
+
+  local side_index = 1
+  -- Diffs.
+  for _ = 1, plus_index - 1 do
+    sections[#sections + 1] =
+      _diff_section(sides[side_index], sides[side_index + 1])
+    side_index = side_index + 2
+  end
+  -- Snapshot.
+  sections[#sections + 1] = {
+    label = "Contents of " .. side(),
+    kind = DiffKind.ADDED,
+    header_line = nil, -- Computed later.
+    content_line = -1, -- Computed later.
+    lines = sides[side_index],
+  }
+  side_index = side_index + 1
+  -- Diff.
+  for _ = plus_index + 1, _num_sides(sides) do
+    sections[#sections + 1] =
+      _diff_section(sides[side_index + 1], sides[side_index])
+    side_index = side_index + 2
   end
   return sections
+end
+
+---@param jj_marker Marker
+local function _deconstruct_marker(jj_marker)
+  local plus_index = nil
+  local is_snapshot = true
+  local plus_sides = {}
+  local minus_sides = {}
+  for i, section in ipairs(jj_marker.sections) do
+    if section.kind == DiffKind.ADDED then
+      plus_sides[#plus_sides + 1] = section.lines
+      plus_index = i
+    elseif section.kind == DiffKind.DELETED then
+      minus_sides[#minus_sides + 1] = section.lines
+    elseif section.kind == DiffKind.DIFF then
+      is_snapshot = false
+      plus_sides[#plus_sides + 1] = _diff_extract_side(section.lines, "+")
+      minus_sides[#minus_sides + 1] = _diff_extract_side(section.lines, "-")
+    end
+  end
+
+  if #plus_sides ~= #minus_sides + 1 then
+    error "Inconsistent number of plus and minus sides."
+  end
+  local sides = {}
+  for i = 1, #minus_sides do
+    sides[#sides + 1] = plus_sides[i]
+    sides[#sides + 1] = minus_sides[i]
+  end
+  sides[#sides + 1] = plus_sides[#plus_sides]
+
+  if is_snapshot then
+    return sides, nil
+  else
+    return sides, plus_index
+  end
 end
 
 --- Cycle the marker format.
@@ -159,50 +245,20 @@ function M.cycle_marker(jj_marker)
     end
   end
 
-  local base = nil
-  local sides = {}
-  local plus_index = nil
-  local is_snapshot = false
-  for i, section in ipairs(jj_marker.sections) do
-    if section.kind == DiffKind.ADDED then
-      sides[#sides + 1] = section.lines
-      plus_index = i
-    elseif section.kind == DiffKind.DELETED then
-      is_snapshot = true
-      if not base then
-        base = section.lines
-      else
-        error "Multiple deleted sections found, cannot convert to snapshots."
-      end
-    elseif section.kind == DiffKind.DIFF then
-      sides[#sides + 1] = _diff_extract_side(section.lines, "+")
-      if not base then
-        base = _diff_extract_side(section.lines, "-")
-      else
-        error "Multiple deleted sections found, cannot convert to snapshots."
-      end
-    end
-  end
+  local sides, plus_index = _deconstruct_marker(jj_marker)
 
-  if not base then
-    error "No deleted section found, cannot convert to snapshots."
-  end
-  if not plus_index then
-    -- This should not happen, but let's just be safe.
-    error "No added section found, cannot convert to snapshots."
-  end
-
-  if plus_index == #sides then
+  local num_sides = _num_sides(sides)
+  if plus_index == num_sides then
     -- Plus last section -> Snapshot.
-    jj_marker.sections = _snapshot_sections(base, sides)
+    jj_marker.sections = _snapshot_sections(sides)
   else
-    if is_snapshot then
+    if not plus_index then
       -- Snapshot -> Plus first section.
       plus_index = 1
     else
       plus_index = plus_index + 1
     end
-    jj_marker.sections = _diff_sections(base, sides, plus_index)
+    jj_marker.sections = _diff_sections(sides, plus_index)
   end
   _fix_section_numbers(jj_marker)
   return jj_marker
