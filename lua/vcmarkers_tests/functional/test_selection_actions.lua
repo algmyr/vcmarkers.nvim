@@ -27,6 +27,7 @@ M.select = {
         +first conflict new 1
         after
       ]],
+      action = actions.select_section,
     },
     select_second_section = {
       line = 6,
@@ -35,6 +36,65 @@ M.select = {
         first conflict new 2
         after
       ]],
+      action = actions.select_section,
+    },
+    -- select_section_verbatim is an alias for select_section
+    select_verbatim_first_section = {
+      line = 5,
+      expected = [[
+        before
+        -first conflict old
+        +first conflict new 1
+        after
+      ]],
+      action = actions.select_section_verbatim,
+    },
+    select_verbatim_second_section = {
+      line = 6,
+      expected = [[
+        before
+        first conflict new 2
+        after
+      ]],
+      action = actions.select_section_verbatim,
+    },
+    select_plus_first_section = {
+      line = 5,
+      expected = [[
+        before
+        first conflict new 1
+        after
+      ]],
+      action = actions.select_section_plus,
+    },
+    select_plus_second_section = {
+      line = 6,
+      expected = [[
+        before
+        first conflict new 2
+        after
+      ]],
+      action = actions.select_section_verbatim,
+    },
+    select_all_first_section = {
+      line = 5,
+      expected = [[
+        before
+        first conflict new 1
+        first conflict new 2
+        after
+      ]],
+      action = actions.select_all,
+    },
+    select_all_second_section = {
+      line = 6,
+      expected = [[
+        before
+        first conflict new 1
+        first conflict new 2
+        after
+      ]],
+      action = actions.select_all,
     },
   },
   test = function(case)
@@ -45,7 +105,7 @@ M.select = {
     helpers.wait_update()
 
     helpers.set_cursor(case.line, 0)
-    actions.select_section(bufnr)
+    case.action(bufnr)
 
     testing.assert_list_eq(
       helpers.get_lines(bufnr),

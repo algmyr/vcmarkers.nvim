@@ -323,6 +323,18 @@ local function _deconstruct_marker(jj_marker)
   end
 end
 
+---Return only the plus sections of a marker.
+---@param marker Marker
+---@return Side[]
+function M.plus_sections(marker)
+  local sides, _ = _deconstruct_marker(marker)
+  local plus_sides = {}
+  for i = 1, #sides, 2 do
+    plus_sides[#plus_sides + 1] = sides[i]
+  end
+  return plus_sides
+end
+
 --- Cycle the marker format.
 ---@param jj_marker Marker
 ---@return Marker

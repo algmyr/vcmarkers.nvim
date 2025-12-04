@@ -30,7 +30,9 @@ local command_map = {
   stop = _no_args(M.actions.stop),
   prev_marker = _with_count(M.actions.prev_marker),
   next_marker = _with_count(M.actions.next_marker),
-  select = _no_args(M.actions.select_section),
+  select = _no_args(M.actions.select_section_plus),
+  select_all = _no_args(M.actions.select_all),
+  select_verbatim = _no_args(M.actions.select_section_verbatim),
   fold = _no_args(M.fold.toggle),
   cycle = _no_args(M.actions.cycle_marker),
 }

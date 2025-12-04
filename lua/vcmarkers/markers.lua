@@ -23,16 +23,16 @@ local DiffKind = diff_kinds.DiffKind
 
 ---@param marker Marker
 ---@param lnum integer
----@return Section|nil
+---@return integer?, Section?
 function M.current_section(marker, lnum)
   lnum = lnum - 1 -- Convert to zero-based line number.
-  for _, section in ipairs(marker.sections) do
+  for i, section in ipairs(marker.sections) do
     local start = section.header_line or section.content_line
     if start <= lnum and lnum < section.content_line + #section.lines then
-      return section
+      return i, section
     end
   end
-  return nil
+  return nil, nil
 end
 
 ---@param section Section

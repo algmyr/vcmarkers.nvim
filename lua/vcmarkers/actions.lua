@@ -1,6 +1,7 @@
 local M = {}
 
 local markers = require "vcmarkers.markers"
+local marker_format = require "vcmarkers.marker_format"
 local highlight = require "vcmarkers.highlight"
 
 ---@param bufnr number Buffer number.
@@ -109,9 +110,15 @@ function M.prev_marker(bufnr, count)
   end
 end
 
+---@class MarkerContext
+---@field marker? Marker The marker under the cursor, if any.
+---@field section? Section The section under the cursor, if any.
+---@field section_index? integer The index of the section under the cursor, if any.
+
 ---@param bufnr integer The buffer number.
-function M.select_section(bufnr)
-  local lnum = vim.fn.line "."
+---@param lnum integer The line number.
+---@return MarkerContext
+local function _get_marker_context(bufnr, lnum)
   local diff_markers = vim.b[bufnr].vcmarkers_markers
   local marker = markers.cur_marker(lnum, diff_markers)
   if not marker then
@@ -120,29 +127,83 @@ function M.select_section(bufnr)
       vim.log.levels.WARN,
       { title = "VCMarkers" }
     )
-    return
+    return {}
   end
 
-  local section = markers.current_section(marker, lnum)
+  local index, section = markers.current_section(marker, lnum)
   if not section then
     vim.notify(
       "No section under cursor",
       vim.log.levels.WARN,
       { title = "VCMarkers" }
     )
-    return
+    return { marker = marker }
   end
+  return {
+    marker = marker,
+    section = section,
+    section_index = index,
+  }
+end
 
-  -- Could check that the section is actually a "plus" section,
-  -- but let's trust the user for now.
+--- Replace the lines of a marker with the given lines.
+--- @param bufnr integer The buffer number.
+--- @param marker Marker The marker to replace.
+--- @param lines string[] The lines to replace with.
+--- @param move_cursor boolean Whether to move the cursor to the start of the marker after replacing.
+local function _replace_marker(bufnr, marker, lines, move_cursor)
   vim.api.nvim_buf_set_lines(
     bufnr,
     marker.start_line,
     marker.end_line,
     true,
-    section.lines
+    lines
   )
-  vim.api.nvim_win_set_cursor(0, { marker.start_line + 1, 0 })
+  if move_cursor then
+    -- Put cursor at a predictable place, at the start line of marker.
+    vim.api.nvim_win_set_cursor(0, { marker.start_line + 1, 0 })
+  end
+end
+
+---@param bufnr integer The buffer number.
+function M.select_section_verbatim(bufnr)
+  local lnum = vim.fn.line "."
+  local ctx = _get_marker_context(bufnr, lnum)
+  if not ctx.marker or not ctx.section then
+    return
+  end
+  _replace_marker(bufnr, ctx.marker, ctx.section.lines, true)
+end
+
+---@param bufnr integer The buffer number.
+function M.select_section_plus(bufnr)
+  local lnum = vim.fn.line "."
+  local ctx = _get_marker_context(bufnr, lnum)
+  if not ctx.marker or not ctx.section_index then
+    return
+  end
+
+  local plus_sections = marker_format.plus_sections(ctx.marker)
+  local section = plus_sections[ctx.section_index]
+  _replace_marker(bufnr, ctx.marker, section.lines, true)
+end
+
+-- For backward compatibility.
+M.select_section = M.select_section_verbatim
+
+---@param bufnr integer The buffer number.
+function M.select_all(bufnr)
+  local lnum = vim.fn.line "."
+  local ctx = _get_marker_context(bufnr, lnum)
+  if not ctx.marker then
+    return
+  end
+  local plus_sections = marker_format.plus_sections(ctx.marker)
+  local all_lines = {}
+  for _, section in ipairs(plus_sections) do
+    vim.list_extend(all_lines, section.lines)
+  end
+  _replace_marker(bufnr, ctx.marker, all_lines, true)
 end
 
 --- Convert markers to a different format.
