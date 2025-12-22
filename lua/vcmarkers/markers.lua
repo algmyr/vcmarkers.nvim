@@ -7,7 +7,7 @@ local marker_format = require "vcmarkers.marker_format"
 local DiffKind = diff_kinds.DiffKind
 
 ---@class Section
----@field label string|nil
+---@field label string[]
 ---@field kind string|nil
 ---@field header_line integer|nil
 ---@field content_line integer
@@ -16,8 +16,8 @@ local DiffKind = diff_kinds.DiffKind
 ---@class Marker
 ---@field start_line integer
 ---@field end_line integer
----@field label string
----@field end_label string
+---@field label string[]
+---@field end_label string[]
 ---@field prefix_len integer
 ---@field sections Section[]
 
@@ -55,7 +55,15 @@ function M.is_minus(section)
 end
 
 local function _pattern(marker, kind)
-  return "^(" .. string.rep(kind, marker.prefix_len) .. ") ?(.*)"
+  return "^(" .. string.rep(kind, marker.prefix_len) .. ")( ?)(.*)"
+end
+
+local function _extract_pattern(line, pattern)
+  local s, _, _, sep, label = string.find(line, pattern)
+  if sep == "" then
+    label = nil
+  end
+  return s, label
 end
 
 ---@param marker Marker
@@ -69,7 +77,7 @@ local function _extract_sections(marker, lines)
 
   local function section_header(line)
     for kind, pattern in pairs(kinds) do
-      local s, _, _, label = string.find(line, pattern)
+      local s, label = _extract_pattern(line, pattern)
       if s then
         return kind, label
       end
@@ -80,17 +88,21 @@ local function _extract_sections(marker, lines)
   ---@type Section[]
   local sections = {}
   local section_start = marker.start_line + 1
-  local section_label = nil
+  local section_label = {}
   local section_kind = nil
   local section_lines = {}
 
   local function handle()
     if section_kind then
+      local header_size = #section_label
+      if header_size == 0 then
+        header_size = 1
+      end
       sections[#sections + 1] = {
         label = section_label,
         kind = section_kind,
         header_line = section_start,
-        content_line = section_start + 1,
+        content_line = section_start + header_size,
         lines = section_lines,
       }
     else
@@ -108,19 +120,30 @@ local function _extract_sections(marker, lines)
     local kind, label = section_header(line)
     if kind then
       -- Found a section header.
-      if
-        kind ~= DiffKind.DIFF3_BASE
-        and kind ~= DiffKind.DIFF3_RIGHT
-        and not section_kind
-      then
-        -- Not a diff3 section, so no initial text section. Skip.
+      if kind == diff_kinds.CONTINUATION then
+        -- A label not existing here would be quite strange,
+        -- seems fine to just ignore it and break roundtripping.
+        if label then
+          section_label[#section_label + 1] = label
+        end
       else
-        handle()
+        if
+          kind ~= DiffKind.DIFF3_BASE
+          and kind ~= DiffKind.DIFF3_RIGHT
+          and not section_kind
+        then
+          -- Not a diff3 section, so no initial text section. Skip.
+        else
+          handle()
+          section_label = {}
+        end
+        if label then
+          section_label[#section_label + 1] = label
+        end
+        section_start = marker.start_line + i
+        section_kind = kind
+        section_lines = {}
       end
-      section_start = marker.start_line + i
-      section_label = label
-      section_kind = kind
-      section_lines = {}
     else
       section_lines[#section_lines + 1] = line
     end
@@ -129,6 +152,15 @@ local function _extract_sections(marker, lines)
   handle()
 
   return sections
+end
+
+---@param s string|nil
+---@return string[]
+local function _listify(s)
+  if not s then
+    return {}
+  end
+  return { s }
 end
 
 ---@param buffer_lines string[]
@@ -149,8 +181,8 @@ function M.extract_diff_markers(buffer_lines)
         marker = {
           start_line = i - 1,
           end_line = -1,
-          label = label,
-          end_label = "",
+          label = _listify(label),
+          end_label = {},
           prefix_len = #prefix,
           sections = {},
         }
@@ -160,11 +192,11 @@ function M.extract_diff_markers(buffer_lines)
 
     -- Inside a marker.
     -- Detect end of marker.
-    local s, _, _, label = string.find(line, _pattern(marker, ">"))
+    local s, label = _extract_pattern(line, _pattern(marker, ">"))
     if s then
       -- End of marker, finalize it.
       marker.end_line = i
-      marker.end_label = label or ""
+      marker.end_label = _listify(label)
       marker.sections = _extract_sections(marker, marker_lines)
       markers[#markers + 1] = marker
       marker = nil

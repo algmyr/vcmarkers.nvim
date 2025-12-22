@@ -16,8 +16,8 @@ local DiffKind = diff_kinds.DiffKind
 local function _assert_marker_eq(a, b)
   _assert_eq(a.start_line, b.start_line, "Start lines differ")
   _assert_eq(a.end_line, b.end_line, "End lines differ")
-  _assert_eq(a.label, b.label, "Labels differ")
-  _assert_eq(a.end_label, b.end_label, "End labels differ")
+  testing.assert_list_eq(a.label, b.label)
+  testing.assert_list_eq(a.end_label, b.end_label)
   _assert_eq(a.prefix_len, b.prefix_len, "Prefix lengths differ")
   _assert_eq(
     #a.sections,
@@ -27,7 +27,7 @@ local function _assert_marker_eq(a, b)
   for i = 1, #a.sections do
     local a_section = a.sections[i]
     local b_section = b.sections[i]
-    _assert_eq(a_section.label, b_section.label, "Section labels differ")
+    testing.assert_list_eq(a_section.label, b_section.label)
     _assert_eq(a_section.kind, b_section.kind, "Section kinds differ")
     _assert_eq(
       a_section.header_line,
@@ -81,6 +81,7 @@ M.parsing = {
         before
         <<<<<<< marker label
         %%%%%%% diff label
+        \\\\\\\ continuation line
         -apple
         +APPLE
         +++++++ snapshot label
@@ -91,23 +92,26 @@ M.parsing = {
       expected_markers = {
         {
           start_line = 1, -- zero-based
-          end_line = 8,
-          label = "marker label",
-          end_label = "end marker label",
+          end_line = 9,
+          label = { "marker label" },
+          end_label = { "end marker label" },
           prefix_len = 7,
           sections = {
             {
-              label = "diff label",
+              label = {
+                "diff label",
+                "continuation line",
+              },
               kind = DiffKind.DIFF,
               header_line = 2,
-              content_line = 3,
+              content_line = 4,
               lines = { "-apple", "+APPLE" },
             },
             {
-              label = "snapshot label",
+              label = { "snapshot label" },
               kind = DiffKind.ADDED,
-              header_line = 5,
-              content_line = 6,
+              header_line = 6,
+              content_line = 7,
               lines = { "orange" },
             },
           },
@@ -131,26 +135,26 @@ M.parsing = {
         {
           start_line = 1, -- zero-based
           end_line = 9,
-          label = "marker label",
-          end_label = "end marker label",
+          label = { "marker label" },
+          end_label = { "end marker label" },
           prefix_len = 7,
           sections = {
             {
-              label = "snapshot label 1",
+              label = { "snapshot label 1" },
               kind = DiffKind.ADDED,
               header_line = 2,
               content_line = 3,
               lines = { "APPLE" },
             },
             {
-              label = "snapshot label 2",
+              label = { "snapshot label 2" },
               kind = DiffKind.DELETED,
               header_line = 4,
               content_line = 5,
               lines = { "apple" },
             },
             {
-              label = "snapshot label 3",
+              label = { "snapshot label 3" },
               kind = DiffKind.ADDED,
               header_line = 6,
               content_line = 7,
@@ -178,6 +182,8 @@ M.roundtrip = {
       text = [[
         <<<<<<< marker label
         %%%%%%% diff label
+        \\\\\\\ continuation line 1
+        \\\\\\\ continuation line 2
         -apple
         +APPLE
         +++++++ snapshot label

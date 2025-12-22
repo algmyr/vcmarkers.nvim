@@ -50,7 +50,11 @@ local function _highlight_marker(bufnr, ns, marker)
     end
 
     if section.header_line then
-      highlight_line("VCMarkersSectionHeader", section.header_line)
+      highlight_line(
+        "VCMarkersSectionHeader",
+        section.header_line,
+        section.content_line
+      )
     end
   end
   highlight_line("VCMarkersMarker", marker.end_line - 1, marker.end_line)

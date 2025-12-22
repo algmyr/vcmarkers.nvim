@@ -6,14 +6,19 @@ local DiffKind = diff_kinds.DiffKind
 
 local util = require "vcmarkers.util"
 
+---@param lines string[]
 ---@param symbol string
 ---@param prefix_len integer
----@param label string
-local function _marker_line(symbol, prefix_len, label)
-  if label ~= "" then
-    return string.rep(symbol, prefix_len) .. " " .. label
+---@param label string[]
+local function _add_marker_lines(lines, symbol, prefix_len, label)
+  if #label > 0 then
+    lines[#lines + 1] = string.rep(symbol, prefix_len) .. " " .. label[1]
+    -- JJ continuation lines.
+    for i = 2, #label do
+      lines[#lines + 1] = string.rep("\\", prefix_len) .. " " .. label[i]
+    end
   else
-    return string.rep(symbol, prefix_len)
+    lines[#lines + 1] = string.rep(symbol, prefix_len)
   end
 end
 
@@ -24,7 +29,7 @@ local function _materialize_section(section, prefix_len)
   local lines = {}
   local symbol = diff_kinds.section_symbols[section.kind]
   if symbol then
-    lines[#lines + 1] = _marker_line(symbol, prefix_len, section.label)
+    _add_marker_lines(lines, symbol, prefix_len, section.label)
   end
   for _, line in ipairs(section.lines) do
     lines[#lines + 1] = line
@@ -37,11 +42,11 @@ end
 function M.materialize_marker(marker)
   ---@type string[]
   local lines = {}
-  lines[#lines + 1] = _marker_line("<", marker.prefix_len, marker.label)
+  _add_marker_lines(lines, "<", marker.prefix_len, marker.label)
   for _, section in ipairs(marker.sections) do
     util.extend(lines, _materialize_section(section, marker.prefix_len))
   end
-  lines[#lines + 1] = _marker_line(">", marker.prefix_len, marker.end_label)
+  _add_marker_lines(lines, ">", marker.prefix_len, marker.end_label)
   return lines
 end
 
@@ -115,7 +120,7 @@ local function _snapshot_sections(sides)
     end
 
     sections[#sections + 1] = {
-      label = label,
+      label = { label },
       kind = kind,
       header_line = nil, -- Computed later.
       content_line = -1, -- Computed later.
@@ -161,7 +166,7 @@ local function _diff_sections(sides, plus_index)
 
   local function _diff_section(plus, minus)
     return {
-      label = "Changes from " .. base() .. " to " .. side(),
+      label = { "Changes from " .. base() .. " to " .. side() },
       kind = DiffKind.DIFF,
       header_line = nil, -- Computed later.
       content_line = -1, -- Computed later.
@@ -178,7 +183,7 @@ local function _diff_sections(sides, plus_index)
   end
   -- Snapshot.
   sections[#sections + 1] = {
-    label = "Contents of " .. side(),
+    label = { "Contents of " .. side() },
     kind = DiffKind.ADDED,
     header_line = nil, -- Computed later.
     content_line = -1, -- Computed later.

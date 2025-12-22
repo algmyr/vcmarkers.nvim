@@ -31,6 +31,8 @@ For jj style diffs
 
 * Cycle through diff representations.
   * `VCMarkers cycle`
+* Handling of jj 0.36 `\\\\\\\` section header continuation.
+  * Not handled for cycling for now (and probably for a long time)
 
 E.g. snapshot first
 ```diff

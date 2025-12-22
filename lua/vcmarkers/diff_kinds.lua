@@ -10,12 +10,15 @@ M.DiffKind = {
   DIFF3_RIGHT = "diff3_right",
 }
 
+M.CONTINUATION = "continuation"
+
 M.section_symbols = {
   [M.DiffKind.DIFF] = "%",
   [M.DiffKind.ADDED] = "+",
   [M.DiffKind.DELETED] = "-",
   [M.DiffKind.DIFF3_BASE] = "|",
   [M.DiffKind.DIFF3_RIGHT] = "=",
+  [M.CONTINUATION] = "\\",
 }
 
 return M
