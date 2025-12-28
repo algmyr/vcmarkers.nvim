@@ -63,11 +63,8 @@ end
 ---@return Section[]
 local function _extract_sections(marker, lines)
   local kinds = {}
-  for _, kind in pairs(DiffKind) do
-    local symbol = diff_kinds.kind_symbols[kind]
-    if symbol then
-      kinds[kind] = _pattern(marker, "%" .. symbol)
-    end
+  for kind, symbol in pairs(diff_kinds.section_symbols) do
+    kinds[kind] = _pattern(marker, "%" .. symbol)
   end
 
   local function section_header(line)

@@ -10,13 +10,12 @@ M.DiffKind = {
   DIFF3_RIGHT = "diff3_right",
 }
 
-M.kind_symbols = {
+M.section_symbols = {
   [M.DiffKind.DIFF] = "%",
   [M.DiffKind.ADDED] = "+",
   [M.DiffKind.DELETED] = "-",
   [M.DiffKind.DIFF3_BASE] = "|",
   [M.DiffKind.DIFF3_RIGHT] = "=",
-  [M.DiffKind.DIFF3_LEFT] = nil,
 }
 
 return M

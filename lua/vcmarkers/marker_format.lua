@@ -22,7 +22,7 @@ end
 local function _materialize_section(section, prefix_len)
   --@type string[]
   local lines = {}
-  local symbol = diff_kinds.kind_symbols[section.kind]
+  local symbol = diff_kinds.section_symbols[section.kind]
   if symbol then
     lines[#lines + 1] = _marker_line(symbol, prefix_len, section.label)
   end
