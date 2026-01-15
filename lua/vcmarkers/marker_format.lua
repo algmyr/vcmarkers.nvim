@@ -100,30 +100,57 @@ local function _side_label_gen()
   end
 end
 
----@param sides string[][]
+---@param label string[]
+---@return boolean
+local function _is_legacy_label(label)
+  if not label or #label ~= 1 then
+    return false
+  end
+  -- Legacy labels are single-line and match patterns like:
+  -- "Contents of side #N", "Contents of base", "Changes from base to side #N".
+  local text = label[1]
+  return (text:match "^Contents of " or text:match "^Changes from ")
+end
+
+---@param label string[]
+---@return string[]
+local function _drop_legacy_label(label)
+  if _is_legacy_label(label) then
+    return {}
+  end
+  return label
+end
+
+---@param sides Side[]
 ---@return Section[]
 local function _snapshot_sections(sides)
   ---@type Section[]
   local sections = {}
   local base = _base_label_gen(_num_sides(sides))
   local side = _side_label_gen()
-  for i, lines in ipairs(sides) do
-    local label
+  for i, side_data in ipairs(sides) do
     local kind
+    local default_label
     if i % 2 == 0 then
-      label = string.format("Contents of " .. base())
       kind = DiffKind.DELETED
+      default_label = "Contents of " .. base()
     else
-      label = string.format("Contents of " .. side())
       kind = DiffKind.ADDED
+      default_label = "Contents of " .. side()
+    end
+
+    -- Use original label if available, otherwise use default.
+    local section_label = side_data.label
+    if not section_label or #section_label == 0 then
+      section_label = { default_label }
     end
 
     sections[#sections + 1] = {
-      label = { label },
+      label = section_label,
       kind = kind,
       header_line = nil, -- Computed later.
       content_line = -1, -- Computed later.
-      lines = lines,
+      lines = side_data.lines,
     }
   end
   return sections
@@ -153,7 +180,7 @@ local function _build_diff_lines(base, side)
   return diff_lines
 end
 
----@param sides string[][]
+---@param sides Side[]
 ---@return Section[]
 local function _diff_sections(sides, plus_index)
   ---@type Section[]
@@ -162,13 +189,35 @@ local function _diff_sections(sides, plus_index)
   local base = _base_label_gen(_num_sides(sides))
   local side = _side_label_gen()
 
-  local function _diff_section(plus, minus)
+  local function _diff_section(plus_side, minus_side)
+    local default_label = { "Changes from " .. base() .. " to " .. side() }
+    local section_label
+
+    local plus_label = plus_side.label
+    local minus_label = minus_side.label
+
+    if plus_label and minus_label and #plus_label > 0 and #minus_label > 0 then
+      -- New style label.
+      -- These should be true, but assert just in case.
+      assert(#plus_label == 1)
+      assert(#minus_label == 1)
+
+      -- Format new style label.
+      section_label = {
+        "diff from: " .. minus_label[1],
+        "       to: " .. plus_label[1],
+      }
+    else
+      -- Generate legacy style label.
+      section_label = default_label
+    end
+
     return {
-      label = { "Changes from " .. base() .. " to " .. side() },
+      label = section_label,
       kind = DiffKind.DIFF,
       header_line = nil, -- Computed later.
       content_line = -1, -- Computed later.
-      lines = _build_diff_lines(minus, plus),
+      lines = _build_diff_lines(minus_side.lines, plus_side.lines),
     }
   end
 
@@ -180,12 +229,20 @@ local function _diff_sections(sides, plus_index)
     side_index = side_index + 2
   end
   -- Snapshot.
+  local snapshot_side = sides[side_index]
+  local snapshot_label = snapshot_side.label
+  if not snapshot_label or #snapshot_label == 0 then
+    snapshot_label = { "Contents of " .. side() }
+  else
+    -- Advance the generator for consistency.
+    side()
+  end
   sections[#sections + 1] = {
-    label = { "Contents of " .. side() },
+    label = snapshot_label,
     kind = DiffKind.ADDED,
     header_line = nil, -- Computed later.
     content_line = -1, -- Computed later.
-    lines = sides[side_index],
+    lines = snapshot_side.lines,
   }
   side_index = side_index + 1
   -- Diff.
@@ -197,22 +254,55 @@ local function _diff_sections(sides, plus_index)
   return sections
 end
 
+---@class Side
+---@field lines string[]
+---@field label string[]
+
+---@param label string[]
+---@return string[], string[]
+local function _extract_diff_labels(label)
+  if not label or #label ~= 2 then
+    -- Not a new style diff label (expected 2 lines) - fall back to defaults.
+    return {}, {}
+  end
+
+  local from_text = label[1]:match "^diff from: (.+)$"
+  local to_text = label[2]:match "^%s+to: (.+)$"
+  if not from_text or not to_text then
+    -- Some part looks malformed - fall back to defaults.
+    return {}, {}
+  end
+  return { to_text }, { from_text }
+end
+
 ---@param jj_marker Marker
+---@return Side[], integer|nil
 local function _deconstruct_marker(jj_marker)
   local plus_index = nil
   local is_snapshot = true
   local plus_sides = {}
   local minus_sides = {}
+
   for i, section in ipairs(jj_marker.sections) do
     if section.kind == DiffKind.ADDED then
-      plus_sides[#plus_sides + 1] = section.lines
+      plus_sides[#plus_sides + 1] =
+        { lines = section.lines, label = _drop_legacy_label(section.label) }
       plus_index = i
     elseif section.kind == DiffKind.DELETED then
-      minus_sides[#minus_sides + 1] = section.lines
+      minus_sides[#minus_sides + 1] =
+        { lines = section.lines, label = _drop_legacy_label(section.label) }
     elseif section.kind == DiffKind.DIFF then
       is_snapshot = false
-      plus_sides[#plus_sides + 1] = _diff_extract_side(section.lines, "+")
-      minus_sides[#minus_sides + 1] = _diff_extract_side(section.lines, "-")
+      -- Extract both plus and minus labels from the diff label.
+      local plus_label, minus_label = _extract_diff_labels(section.label)
+      plus_sides[#plus_sides + 1] = {
+        lines = _diff_extract_side(section.lines, "+"),
+        label = plus_label,
+      }
+      minus_sides[#minus_sides + 1] = {
+        lines = _diff_extract_side(section.lines, "-"),
+        label = minus_label,
+      }
     end
   end
 

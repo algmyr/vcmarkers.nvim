@@ -27,7 +27,7 @@ local function _make_section(kind, lines)
     content_line = 123,
     header_line = 456,
     kind = kind,
-    label = nil,
+    label = {},
     lines = lines,
   }
 end
