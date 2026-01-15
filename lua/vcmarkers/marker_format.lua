@@ -100,7 +100,6 @@ local function _side_label_gen()
   end
 end
 
----@param base string[]
 ---@param sides string[][]
 ---@return Section[]
 local function _snapshot_sections(sides)
@@ -154,7 +153,6 @@ local function _build_diff_lines(base, side)
   return diff_lines
 end
 
----@param base string[]
 ---@param sides string[][]
 ---@return Section[]
 local function _diff_sections(sides, plus_index)
