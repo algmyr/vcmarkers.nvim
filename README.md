@@ -1,8 +1,5 @@
 # VCMarkers.nvim
 
-> [!WARNING]
-> This is very much a WIP and bugs are likely.
-
 Plugin that handles diff markers. Supports jj style diffs and diff3.
 
 When started, the processing of diff markers will continue to auto-update until
