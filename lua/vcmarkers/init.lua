@@ -55,11 +55,14 @@ local default_config = {
   -- E.g. { 1, 3 } would mean one fold level with a context of 1 line,
   -- and one fold level with a context of 3 lines.
   fold_context_sizes = { 1 },
+  -- Enable inline highlights for IDs and strings in marker headers.
+  inline_highlights = true,
 }
 
 function M.setup(user_config)
   local config = vim.tbl_deep_extend("force", default_config, user_config or {})
   vim.g.vcmarkers_fold_context_sizes = config.fold_context_sizes
+  vim.g.vcmarkers_inline_highlights = config.inline_highlights
 
   vim.api.nvim_create_user_command("VCMarkers", _command, {
     desc = "VCMarkers command",
@@ -81,6 +84,11 @@ function M.setup(user_config)
   vim.cmd [[
     highlight default link VCMarkersMarker         SignColumn
     highlight default link VCMarkersSectionHeader  SignColumn
+    " These happened to be ok for my terminal colorscheme,
+    " you may want to customize them.
+    highlight default link VCMarkersRevisionId     Keyword
+    highlight default link VCMarkersChangeId       Number
+    highlight default link VCMarkersDescription    String
   ]]
 
   local function effectively_enabled(bufnr)

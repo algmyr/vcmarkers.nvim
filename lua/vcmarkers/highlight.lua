@@ -14,6 +14,25 @@ local function _highlight_marker(bufnr, ns, marker)
     })
   end
 
+  local function highlight_label(line_nr, line_text)
+    if not vim.g.vcmarkers_inline_highlights then
+      return
+    end
+    local function find_and_highlight(pattern, group)
+      for start_pos, match in line_text:gmatch("()(" .. pattern .. ")") do
+        local end_pos = start_pos + #match
+        highlight_span(group, line_nr, start_pos - 1, end_pos - 1)
+      end
+    end
+
+    find_and_highlight("%x%x%x%x%x%x%x%x", "VCMarkersRevisionId")
+    find_and_highlight(
+      "[k-z][k-z][k-z][k-z][k-z][k-z][k-z][k-z]",
+      "VCMarkersChangeId"
+    )
+    find_and_highlight('".*"', "VCMarkersDescription")
+  end
+
   local function highlight_line(group, line_nr, end_line_nr)
     -- Workaround from https://github.com/lewis6991/gitsigns.nvim/issues/1115#issuecomment-2319497559
     end_line_nr = end_line_nr or line_nr + 1
@@ -55,6 +74,13 @@ local function _highlight_marker(bufnr, ns, marker)
         section.header_line,
         section.content_line
       )
+      -- Highlight components within the header labels.
+      for i = section.header_line, section.content_line - 1 do
+        local line_text = vim.api.nvim_buf_get_lines(bufnr, i, i + 1, false)[1]
+        if line_text then
+          highlight_label(i, line_text)
+        end
+      end
     end
   end
   highlight_line("VCMarkersMarker", marker.end_line - 1, marker.end_line)
