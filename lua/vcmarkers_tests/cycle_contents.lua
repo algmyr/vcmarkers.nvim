@@ -96,7 +96,7 @@ local _generate_cycle_cases = function(prefix, cycle)
   return cases
 end
 
-M.cycles = {
+M.content_cycles = {
   test_cases = vim.tbl_extend(
     "error",
     _generate_cycle_cases("simple", {
