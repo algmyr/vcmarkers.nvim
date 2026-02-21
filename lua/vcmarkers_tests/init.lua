@@ -11,4 +11,8 @@ function M.run()
   testing.run_tests(test_modules)
 end
 
+function M.run_functional()
+  require("vcmarkers_tests.functional").run()
+end
+
 return M
