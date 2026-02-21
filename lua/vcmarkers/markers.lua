@@ -223,29 +223,29 @@ function M.to_interval(marker)
 end
 
 --- Get the `count`th previous marker.
----@param lnum integer
+---@param lnum integer One-indexed line number.
 ---@param markers Marker[]
 ---@param count integer
 ---@return Marker?
 function M.prev_marker(lnum, markers, count)
-  return intervals.from_list(markers, M.to_interval):find(lnum, -count)
+  return intervals.from_list(markers, M.to_interval):find(lnum - 1, -count)
 end
 
 --- Get the `count`th next marker.
----@param lnum integer
+---@param lnum integer One-indexed line number.
 ---@param markers Marker[]
 ---@param count integer
 ---@return Marker?
 function M.next_marker(lnum, markers, count)
-  return intervals.from_list(markers, M.to_interval):find(lnum, count)
+  return intervals.from_list(markers, M.to_interval):find(lnum - 1, count)
 end
 
 --- Get the current marker for a given line number, if any.
----@param lnum integer
+---@param lnum integer One-indexed line number.
 ---@param markers Marker[]
 ---@return Marker?
 function M.cur_marker(lnum, markers)
-  return intervals.from_list(markers, M.to_interval):find(lnum, 0)
+  return intervals.from_list(markers, M.to_interval):find(lnum - 1, 0)
 end
 
 -- Re-export the marker format functions.
