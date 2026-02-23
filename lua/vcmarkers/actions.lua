@@ -192,7 +192,7 @@ end
 M.select_section = M.select_section_verbatim
 
 ---@param bufnr integer The buffer number.
-function M.select_all(bufnr)
+function M.select_all_plus(bufnr)
   local lnum = vim.fn.line "."
   local ctx = _get_marker_context(bufnr, lnum)
   if not ctx.marker then

@@ -90,7 +90,8 @@ Example configuration
 
     map('n', '<space>m]', function() require('vcmarkers').actions.next_marker(0, vim.v.count1) end, 'Go to next marker')
     map('n', '<space>m[', function() require('vcmarkers').actions.prev_marker(0, vim.v.count1) end, 'Go to previous marker')
-    map('n', '<space>ms', function() require('vcmarkers').actions.select_section(0) end, 'Select the section under the cursor')
+    map('n', '<space>ms', function() require('vcmarkers').actions.select_section_verbatim(0) end, 'Replace marker with section contents')
+    map('n', '<space>mS', function() require('vcmarkers').actions.select_all_plus(0) end, 'Replace marker with plus parts of marker')
     map('n', '<space>mf', function() require('vcmarkers').fold.toggle(0) end, 'Fold outside markers')
     map('n', '<space>mc', function() require('vcmarkers').actions.cycle_marker(0) end, 'Cycle marker representations')
   end,

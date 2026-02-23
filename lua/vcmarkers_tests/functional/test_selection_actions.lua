@@ -84,7 +84,7 @@ M.select = {
         first conflict new 2
         after
       ]],
-      action = actions.select_all,
+      action = actions.select_all_plus,
     },
     select_all_second_section = {
       line = 6,
@@ -94,7 +94,7 @@ M.select = {
         first conflict new 2
         after
       ]],
-      action = actions.select_all,
+      action = actions.select_all_plus,
     },
   },
   test = function(case)
