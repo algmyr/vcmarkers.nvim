@@ -2,6 +2,8 @@
 
 Plugin that handles diff markers. Supports jj style diffs and diff3.
 
+<img width="720" height="370" alt="image" src="https://github.com/user-attachments/assets/e225d615-066c-4660-ab43-a1ae13c41af4" />
+
 When started, the processing of diff markers will continue to auto-update until
 there are no more diff markers in the file. By default the plugin tries to
 start tracking on buffer load, but if needed tracking can also be manually
