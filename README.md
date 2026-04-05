@@ -66,12 +66,12 @@ hi
 ```
 and then back to snapshot first.
 
+### Cycling and selecting in action
+[Screen recording](https://github.com/user-attachments/assets/bcc27b94-5550-4866-a85d-8086af6256c2)
+
 ### Not yet implemented
 
 * Documentation.
-
-## Flashy screenshots or recordings?
-TBD, maybe.
 
 ## Example config
 For the documented default config, have a look inside `init.lua`.
