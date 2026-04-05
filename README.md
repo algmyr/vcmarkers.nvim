@@ -84,6 +84,10 @@ Example configuration
   config = function()
     require('vcmarkers').setup {}
 
+    dependencies = {
+      "algmyr/vclib.nvim",
+    },
+
     local function map(mode, lhs, rhs, desc, opts)
       local options = { noremap = true, silent = true, desc = desc }
       if opts then options = vim.tbl_extend('force', options, opts) end
